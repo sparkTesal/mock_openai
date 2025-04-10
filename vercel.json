@@ -3,15 +3,13 @@
   "builds": [
     {
       "src": "api/proxy.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "memory": 1024,
+        "maxDuration": 10
+      }
     }
   ],
-  "functions": {
-    "api/proxy.py": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "routes": [
     {
       "src": "/api/(.*)",
