@@ -189,7 +189,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'text/event-stream')
         self.send_header('Cache-Control', 'no-cache')
-        self.send_header('Connection', 'keep-alive')
+        self.send_header('Connection', 'close')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
@@ -212,6 +212,7 @@ class handler(BaseHTTPRequestHandler):
                     error_event = f"data: {json.dumps(error_data)}\n\n"
                     self.wfile.write(error_event.encode())
                     self.wfile.write("data: [DONE]\n\n".encode())
+                    self.wfile.flush()
                     return
                 
                 # 处理流式响应
@@ -225,6 +226,7 @@ class handler(BaseHTTPRequestHandler):
                     # 流结束标记
                     if line == b"[DONE]":
                         self.wfile.write("data: [DONE]\n\n".encode())
+                        self.wfile.flush()
                         break
                     
                     try:
@@ -312,6 +314,7 @@ class handler(BaseHTTPRequestHandler):
             error_event = f"data: {{\"error\":\"流式响应处理错误: {str(e)}\"}}\n\n"
             self.wfile.write(error_event.encode())
             self.wfile.write("data: [DONE]\n\n".encode())
+            self.wfile.flush()
         
         # 记录完整响应
         response_time = time.time() - start_time
@@ -323,6 +326,15 @@ class handler(BaseHTTPRequestHandler):
         # 如果有工具调用，单独记录
         if has_tool_calls:
             self._log_tool_calls(request_id, complete_response)
+        
+        # 确保连接被关闭
+        try:
+            self.wfile.flush()
+            # 强制关闭连接
+            if hasattr(self.wfile, 'close'):
+                self.wfile.close()
+        except Exception as e:
+            print(f"[{request_id}] 关闭连接时出错: {str(e)}")
     
     def _log_tool_calls(self, request_id, response_data):
         """记录工具调用详情"""
