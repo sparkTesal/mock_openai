@@ -60,6 +60,10 @@ class handler(BaseHTTPRequestHandler):
             if "tools" in request_data:
                 unified_tools = self.unify_tool_format(request_data["tools"])
                 request_data["tools"] = unified_tools
+            
+            if "messages" in request_data:
+                unified_messages = self.unify_message_format(request_data["messages"])
+                request_data["messages"] = unified_messages
 
             # tool_choice参数会导致openrouter异常，先删掉，反正一般都是传auto
             if "tool_choice" in request_data:
@@ -382,6 +386,30 @@ class handler(BaseHTTPRequestHandler):
             else:
                 unified_tools.append(tool)
         return unified_tools
+
+    def unify_message_format(self, messages: list)->list:
+        """统一消息格式"""
+        unified_messages = []
+        for message in messages:
+            # 判断是否有content字段，以及content字段是否是array
+            if "content" in message and isinstance(message["content"], list):
+                # 判断content的元素中的type字段是否存在以及是否为tool_result，如果是则转化为text类型
+                content = message["content"]
+                if "type" in content[0] and content[0]["type"] == "tool_result":
+                    unified_messages.append(
+                        {
+                            "type": "tool",
+                            "tool_call_id": content[0]["tool_use_id"],
+                            "content": {
+                                "type": "text",
+                                "text": content[0]["text"]
+                            }
+                        },
+                    )
+            else:
+                unified_messages.append(message)
+        return unified_messages
+
 
 
 
