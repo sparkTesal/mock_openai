@@ -53,8 +53,12 @@ class handler(BaseHTTPRequestHandler):
             request_data = json.loads(request_body)
             
             # 记录请求信息（不记录敏感内容）
-            sanitized_request = self._sanitize_request(request_data.copy())
-            print(f"[{request_id}] 收到请求: {json.dumps(sanitized_request, ensure_ascii=False)}")
+            print(f"[{request_id}] 收到请求: {json.dumps(request_data, ensure_ascii=False)}")
+
+            # 统一化参数
+            if "tools" in request_data:
+                unified_tools = self.unify_tool_format(request_data["tools"])
+                request_data["tools"] = unified_tools
             
             # 检查是否请求流式响应
             stream_mode = request_data.get('stream', False)
@@ -137,8 +141,7 @@ class handler(BaseHTTPRequestHandler):
         response_data = response.json()
         
         # 记录响应
-        sanitized_response = self._sanitize_response(response_data.copy())
-        print(f"[{request_id}] 收到OpenRouter响应 ({response.status_code}): {json.dumps(sanitized_response, ensure_ascii=False)}")
+        print(f"[{request_id}] 收到OpenRouter响应 ({response.status_code}): {json.dumps(response_data, ensure_ascii=False)}")
         print(f"[{request_id}] 响应耗时: {response_time:.2f}秒")
         
         # 记录工具调用（如果有）
@@ -318,10 +321,9 @@ class handler(BaseHTTPRequestHandler):
         
         # 记录完整响应
         response_time = time.time() - start_time
-        sanitized_complete_response = self._sanitize_response(complete_response.copy())
-        
+
         print(f"[{request_id}] 流式响应完成，耗时: {response_time:.2f}秒")
-        print(f"[{request_id}] 完整响应: {json.dumps(sanitized_complete_response, ensure_ascii=False)}")
+        print(f"[{request_id}] 完整响应: {json.dumps(complete_response, ensure_ascii=False)}")
         
         # 如果有工具调用，单独记录
         if has_tool_calls:
@@ -355,43 +357,23 @@ class handler(BaseHTTPRequestHandler):
                     
                     print(f"[{request_id}] 工具调用 #{i+1}: {function_name}")
                     print(f"[{request_id}] 参数: {formatted_args}")
-    
-    def _sanitize_request(self, request_data):
-        """清理请求数据以便于日志记录（移除敏感信息）"""
-        # 如果包含消息，只保留每条消息的role和内容长度
-        if 'messages' in request_data:
-            sanitized_messages = []
-            for msg in request_data['messages']:
-                sanitized_msg = {
-                    "role": msg.get("role", "unknown")
-                }
-                if "content" in msg:
-                    content = msg["content"]
-                    # 如果内容很长，只保留摘要
-                    if isinstance(content, str) and len(content) > 100:
-                        sanitized_msg["content_length"] = len(content)
-                        sanitized_msg["content_preview"] = content[:50] + "..."
-                    else:
-                        sanitized_msg["content"] = content
-                sanitized_messages.append(sanitized_msg)
-            request_data['messages'] = sanitized_messages
+
+
+    def unify_tool_format(self, tools: list)->list:
+        """统一工具参数格式"""
+        unified_tools =[]
+        for tool in tools:
+            # 把claude格式转化成openai格式
+            if "input_schema" in tool:
+                unified_tools.append({
+                    "type": "function",
+                    "function": {
+                        "name": tool["name"],
+                        "description": tool["description"],
+                        "parameters": tool["input_schema"]
+                    }
+                })
+            else:
+                unified_tools.append(tool)
+        return unified_tools
         
-        return request_data
-    
-    def _sanitize_response(self, response_data):
-        """清理响应数据以便于日志记录（保持关键信息，移除过长内容）"""
-        if 'choices' in response_data and len(response_data['choices']) > 0:
-            for choice in response_data['choices']:
-                if 'message' in choice:
-                    message = choice['message']
-                    if 'content' in message and isinstance(message['content'], str) and len(message['content']) > 200:
-                        content = message['content']
-                        message['content_length'] = len(content)
-                        message['content_preview'] = content[:100] + "..." + content[-100:]
-                
-                # 确保工具调用记录完整
-                if 'message' in choice and 'tool_calls' in choice['message']:
-                    # 保留工具调用信息，不做修改
-                    pass
-        
-        return response_data
