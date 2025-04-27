@@ -59,6 +59,9 @@ class handler(BaseHTTPRequestHandler):
             if "tools" in request_data:
                 unified_tools = self.unify_tool_format(request_data["tools"])
                 request_data["tools"] = unified_tools
+
+            # tool_choice参数会导致openrouter异常，先删掉，反正一般都是传auto
+            del request_data["tool_choice"]
             
             # 检查是否请求流式响应
             stream_mode = request_data.get('stream', False)
@@ -376,4 +379,7 @@ class handler(BaseHTTPRequestHandler):
             else:
                 unified_tools.append(tool)
         return unified_tools
-        
+
+
+
+
