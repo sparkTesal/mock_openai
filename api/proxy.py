@@ -387,7 +387,7 @@ class handler(BaseHTTPRequestHandler):
                 unified_tools.append(tool)
         return unified_tools
 
-    def unify_message_format(messages: list) -> list:
+    def unify_message_format(self, messages: list) -> list:
         """统一消息格式"""
         unified_messages = []
 
@@ -415,4 +415,4 @@ class handler(BaseHTTPRequestHandler):
             unified_messages.append(message)
 
         return unified_messages
-    
+
