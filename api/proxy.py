@@ -60,7 +60,7 @@ class handler(BaseHTTPRequestHandler):
             if "tools" in request_data:
                 unified_tools = self.unify_tool_format(request_data["tools"])
                 request_data["tools"] = unified_tools
-            
+
             if "messages" in request_data:
                 unified_messages = self.unify_message_format(request_data["messages"])
                 request_data["messages"] = unified_messages
@@ -387,30 +387,32 @@ class handler(BaseHTTPRequestHandler):
                 unified_tools.append(tool)
         return unified_tools
 
-    def unify_message_format(self, messages: list)->list:
+    def unify_message_format(messages: list) -> list:
         """统一消息格式"""
         unified_messages = []
+
         for message in messages:
-            # 判断是否有content字段，以及content字段是否是array
-            if "content" in message and isinstance(message["content"], list):
-                # 判断content的元素中的type字段是否存在以及是否为tool_result，如果是则转化为text类型
-                content = message["content"]
-                if "type" in content[0] and content[0]["type"] == "tool_result":
-                    unified_messages.append(
-                        {
-                            "type": "tool",
-                            "tool_call_id": content[0]["tool_use_id"],
-                            "content": {
-                                "type": "text",
-                                "text": content[0]["text"]
+            # Check if message has a content field that is a list
+            if isinstance(message.get("content"), list) and message["content"]:
+                first_content = message["content"][0]
+
+                # Check if the first content element is a tool_result
+                if first_content.get("type") == "tool_result":
+                    unified_messages.append({
+                        "type": "tool",
+                        "tool_call_id": first_content["tool_use_id"],
+                        "content": {
+                            "type": "text",
+                            "text": first_content["content"][0]["text"],
+                            "cache_control": {
+                                "type": "ephemeral"
                             }
-                        },
-                    )
-            else:
-                unified_messages.append(message)
+                        }
+                    })
+                    continue
+
+            # For all other cases, keep the original message
+            unified_messages.append(message)
+
         return unified_messages
-
-
-
-
-
+    
