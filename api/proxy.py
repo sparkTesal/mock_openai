@@ -53,7 +53,8 @@ class handler(BaseHTTPRequestHandler):
             request_data = json.loads(request_body)
             
             # 记录请求信息（不记录敏感内容）
-            print(f"[{request_id}] 收到请求: {json.dumps(request_data, ensure_ascii=False)}")
+            print(f"[{request_id}] 收到请求: ")
+            print(f"{json.dumps(request_data, ensure_ascii=False)}")
 
             # 统一化参数
             if "tools" in request_data:
@@ -61,7 +62,8 @@ class handler(BaseHTTPRequestHandler):
                 request_data["tools"] = unified_tools
 
             # tool_choice参数会导致openrouter异常，先删掉，反正一般都是传auto
-            del request_data["tool_choice"]
+            if "tool_choice" in request_data:
+                del request_data["tool_choice"]
             
             # 检查是否请求流式响应
             stream_mode = request_data.get('stream', False)
@@ -136,7 +138,7 @@ class handler(BaseHTTPRequestHandler):
             openrouter_url,
             headers=openrouter_headers,
             json=request_data,
-            timeout=120  # 长超时以适应较长的请求
+            timeout=600  # 长超时以适应较长的请求
         )
         
         # 获取完整响应数据
@@ -144,7 +146,8 @@ class handler(BaseHTTPRequestHandler):
         response_data = response.json()
         
         # 记录响应
-        print(f"[{request_id}] 收到OpenRouter响应 ({response.status_code}): {json.dumps(response_data, ensure_ascii=False)}")
+        print(f"[{request_id}] OpenRouter响应 ({response.status_code})")
+        print(f"{json.dumps(response_data, ensure_ascii=False)}")
         print(f"[{request_id}] 响应耗时: {response_time:.2f}秒")
         
         # 记录工具调用（如果有）
@@ -326,20 +329,20 @@ class handler(BaseHTTPRequestHandler):
         response_time = time.time() - start_time
 
         print(f"[{request_id}] 流式响应完成，耗时: {response_time:.2f}秒")
-        print(f"[{request_id}] 完整响应: {json.dumps(complete_response, ensure_ascii=False)}")
+        print(f"{json.dumps(complete_response, ensure_ascii=False)}")
         
         # 如果有工具调用，单独记录
         if has_tool_calls:
             self._log_tool_calls(request_id, complete_response)
         
-        # 确保连接被关闭
-        try:
-            self.wfile.flush()
-            # 强制关闭连接
-            if hasattr(self.wfile, 'close'):
-                self.wfile.close()
-        except Exception as e:
-            print(f"[{request_id}] 关闭连接时出错: {str(e)}")
+        # # 确保连接被关闭
+        # try:
+        #     self.wfile.flush()
+        #     # 强制关闭连接
+        #     if hasattr(self.wfile, 'close'):
+        #         self.wfile.close()
+        # except Exception as e:
+        #     print(f"[{request_id}] 关闭连接时出错: {str(e)}")
     
     def _log_tool_calls(self, request_id, response_data):
         """记录工具调用详情"""
