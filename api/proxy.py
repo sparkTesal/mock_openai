@@ -204,11 +204,11 @@ class handler(BaseHTTPRequestHandler):
                     if not line:
                         continue
 
+                    if b': OPENROUTER PROCESSING' in line:
+                        continue
+                        
                     # 直接转发原始数据
-                    if line.startswith(b"data: "):
-                        line = line[6:]  # 去掉 "data: " 前缀
-                        if line == b': OPENROUTER PROCESSING':
-                            continue
+                    if line.startswith(b"data: "):                
                         self.wfile.write(line + b"\n\n")
                     else:
                         self.wfile.write(b"data: " + line + b"\n\n")
