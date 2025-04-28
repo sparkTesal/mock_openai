@@ -206,6 +206,9 @@ class handler(BaseHTTPRequestHandler):
 
                     # 直接转发原始数据
                     if line.startswith(b"data: "):
+                        line = line[6:]  # 去掉 "data: " 前缀
+                        if line == b': OPENROUTER PROCESSING':
+                            continue
                         self.wfile.write(line + b"\n\n")
                     else:
                         self.wfile.write(b"data: " + line + b"\n\n")
