@@ -8,6 +8,12 @@ from http.server import BaseHTTPRequestHandler
 # 配置项
 OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
 
+MODEL_NAME_MAP = {
+    "openai/claude-3.7": "anthropic/claude-3.7-sonnet",
+    "openai/claude-3.5": "anthropic/claude-3.5-sonnet",
+    "openai/claude-3.7-thinking": "anthropic/claude-3.7-sonnet"
+}
+
 def get_api_key():
     return os.environ.get("OPENROUTER_API_KEY", "")
 
@@ -56,14 +62,17 @@ class handler(BaseHTTPRequestHandler):
             print(f"[{request_id}] 收到请求: ")
             print(f"{json.dumps(request_data, ensure_ascii=False)}")
 
-            # 统一化参数
-            if "tools" in request_data:
-                unified_tools = self.unify_tool_format(request_data["tools"])
-                request_data["tools"] = unified_tools
+            if "model" in request_data:
+                request_data["model"] = MODEL_NAME_MAP.get(request_data["model"], request_data["model"])
 
-            if "messages" in request_data:
-                unified_messages = self.unify_message_format(request_data["messages"])
-                request_data["messages"] = unified_messages
+            # 统一化参数
+            # if "tools" in request_data:
+            #     unified_tools = self.unify_tool_format(request_data["tools"])
+            #     request_data["tools"] = unified_tools
+            #
+            # if "messages" in request_data:
+            #     unified_messages = self.unify_message_format(request_data["messages"])
+            #     request_data["messages"] = unified_messages
 
             # tool_choice参数会导致openrouter异常，先删掉，反正一般都是传auto
             if "tool_choice" in request_data:
