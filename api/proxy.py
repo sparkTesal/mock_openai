@@ -9,9 +9,9 @@ from http.server import BaseHTTPRequestHandler
 OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
 
 MODEL_NAME_MAP = {
-    "openai/claude-3.7": "anthropic/claude-3.7-sonnet",
-    "openai/claude-3.5": "anthropic/claude-3.5-sonnet",
-    "openai/claude-3.7-thinking": "anthropic/claude-3.7-sonnet"
+    "gpt-4o": "anthropic/claude-3.7-sonnet",
+    "gpt-3.5-turbo": "anthropic/claude-3.5-sonnet",
+    "gpt-4": "anthropic/claude-3.7-sonnet:thinking"
 }
 
 def get_api_key():
